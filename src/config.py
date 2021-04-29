@@ -22,7 +22,7 @@ CartPole = {
     'n_episodes': 1000,
     'batch_size': 32,
     'target_update_frequency': 30,
-    'train_frequency': 1,
+    'train_frequency': 2,
     'gamma': 0.95,
     'lr': 1e-4,
     'eps_start': 1.0,

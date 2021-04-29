@@ -25,7 +25,11 @@ ENV_CONFIGS = {
     'CartPole-v1': config.CartPole
 }
 
-def train(env, env_config, stats = None):
+def train(env, eval_episodes, eval_freq, env_config, stats = None, save_model = True, verbose = 2):
+    if verbose == 1:
+        end = "\r"
+    elif verbose == 2:
+        end = "\n"
     # Initialize deep Q-networks.
     dqn = DQN(env_config=env_config).to(device)
     dqn.train()
@@ -47,12 +51,13 @@ def train(env, env_config, stats = None):
     for episode in range(env_config['n_episodes']):
         done = False
 
-        obs = preprocess(env.reset(), env=args.env).unsqueeze(0)
+        obs = preprocess(env.reset(), env=env.spec.id).unsqueeze(0)
 
         iteration = 0
 
         if stats:
             stats.start_episode()
+            stats.log("episode", episode)
 
         while not done:
             iteration += 1
@@ -67,7 +72,7 @@ def train(env, env_config, stats = None):
 
             # Preprocess incoming observation.
             if not done:
-                obs = preprocess(obs, env=args.env).unsqueeze(0)
+                obs = preprocess(obs, env=env.spec.id).unsqueeze(0)
             else:
                 obs = None
 
@@ -85,25 +90,28 @@ def train(env, env_config, stats = None):
 
         stats.log("iterations", iteration)
         # Evaluate the current agent.
-        if episode % args.evaluate_freq == 0 or episode == env_config['n_episodes']-1:
-            mean_return = evaluate_policy(dqn, env, env_config, args, n_episodes=args.evaluation_episodes)
+        if episode % eval_freq == 0 or episode == env_config['n_episodes']-1:
+            mean_return = evaluate_policy(dqn, env, env_config, n_episodes=eval_episodes)
 
             if stats:
                 stats.log("mean_return", mean_return)
-
-            print(f'Episode {episode}/{env_config["n_episodes"]}: {mean_return}')
+            if verbose > 0:
+                print(f'Episode {episode}/{env_config["n_episodes"]}: {mean_return}', end=end)
 
             # Save current agent if it has the best performance so far.
             if mean_return >= best_mean_return:
                 best_mean_return = mean_return
 
-                print('Best performance so far! Saving model.')
+                if verbose > 1:
+                    print('Best performance so far! Saving model.')
 
-                # Test if models dir exists
-                if not path.isdir("models"):
-                    mkdir('models')
 
-                torch.save(dqn, f'models/{args.env}_best.pt')
+                if save_model:
+                    # Test if models dir exists
+                    if not path.isdir("models"):
+                        mkdir('models')
+
+                    torch.save(dqn, f'models/{env.spec.id}_best.pt')
     if stats:
         stats.finalize()
 
@@ -115,10 +123,10 @@ if __name__ == '__main__':
     env_config = ENV_CONFIGS[args.env]
 
     # Initialize statistics
-    stats = Statistics({}, ["iterations", "mean_return", "loss"])
+    stats = Statistics({}, ["episode","iterations", "mean_return", "loss"])
 
     # Start training
-    train(env, env_config, stats)
+    train(env, args.evaluation_episodes, args.evaluate_freq, env_config, stats)
 
     stats.save("test.csv")
     # Close environment after training is completed.
