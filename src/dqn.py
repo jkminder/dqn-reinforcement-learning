@@ -87,7 +87,7 @@ class DQN(nn.Module):
             eps = self.get_epsilon()
             roll = torch.rand(observation.shape[0])
             exploration_indices = roll < eps
-            actions[exploration_indices] = torch.randint(high=self.n_actions, size=[sum(exploration_indices)])
+            actions[exploration_indices] = torch.randint(high=self.n_actions, size=[sum(exploration_indices)], device=device)
             self.steps_done += observation.shape[0]
         return actions
 
