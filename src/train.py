@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import copy
 from os import path, mkdir
+import random
 
 import config
 from utils import preprocess
@@ -30,13 +31,14 @@ def train(env, eval_episodes, eval_freq, env_config, stats = None, save_model = 
         end = "\r"
     elif verbose == 2:
         end = "\n"
+
     # Initialize deep Q-networks.
     dqn = DQN(env_config=env_config).to(device)
     dqn.train()
 
     # Create and initialize target Q-network.
     target_dqn = DQN(env_config=env_config).to(device)
-    target_dqn.load_state_dict(dqn.state_dict())
+    target_dqn.load_state(dqn)
     target_dqn.eval()
 
     # Create replay memory.
@@ -49,46 +51,47 @@ def train(env, eval_episodes, eval_freq, env_config, stats = None, save_model = 
     best_mean_return = -float("Inf")
 
     for episode in range(env_config['n_episodes']):
+        iteration = 0
         done = False
 
         obs = preprocess(env.reset(), env=env.spec.id).unsqueeze(0)
 
-        iteration = 0
 
         if stats:
             stats.start_episode()
+            stats.log_config(env_config)
             stats.log("episode", episode)
 
         while not done:
-            iteration += 1
+            # Get action from DQN.
+            action = dqn.act(obs, exploit=False).item()
 
             obs_prev = obs
 
-            # Get action from DQN.
-            action = dqn.act(obs)
-
             # Act in the true environment.
-            obs, reward, done, info = env.step(action.item())
+            obs, reward, done, info = env.step(action)
 
             # Preprocess incoming observation.
-            if not done:
-                obs = preprocess(obs, env=env.spec.id).unsqueeze(0)
-            else:
-                obs = None
+            obs = preprocess(obs, env=env.spec.id).unsqueeze(0)
 
             # Add the transition to the replay memory. Remember to convert
-            memory.push(obs_prev, action, obs, reward)
+            memory.push(obs_prev, action, obs, reward, done)
 
             # Run optimization every env_config["train_frequency"] steps.
             if iteration % env_config['train_frequency'] == 0:
                 loss = optimize(dqn, target_dqn, memory, optimizer, env_config['grad_clip'])
-                stats.log_iteration("loss", loss)
+                if stats:
+                    stats.log_iteration("loss", loss)
 
             # Update the target network every env_config["target_update_frequency"] steps.
             if iteration % env_config['target_update_frequency'] == 0:
-                target_dqn.load_state_dict(dqn.state_dict())
+                target_dqn.load_state(dqn)
 
-        stats.log("iterations", iteration)
+            iteration += 1
+
+        if stats:
+            stats.log("iterations", iteration)
+
         # Evaluate the current agent.
         if episode % eval_freq == 0 or episode == env_config['n_episodes']-1:
             mean_return = evaluate_policy(dqn, env, env_config, n_episodes=eval_episodes)
@@ -104,7 +107,6 @@ def train(env, eval_episodes, eval_freq, env_config, stats = None, save_model = 
 
                 if verbose > 1:
                     print('Best performance so far! Saving model.')
-
 
                 if save_model:
                     # Test if models dir exists
@@ -122,12 +124,13 @@ if __name__ == '__main__':
     env = gym.make(args.env)
     env_config = ENV_CONFIGS[args.env]
 
-    # Initialize statistics
-    stats = Statistics({}, ["episode","iterations", "mean_return", "loss"])
+    # Make things reproducible.
+    torch.manual_seed(seed=0)
+    random.seed(a=0)
+    env.seed(seed=0)
 
     # Start training
-    train(env, args.evaluation_episodes, args.evaluate_freq, env_config, stats)
+    train(env, args.evaluation_episodes, args.evaluate_freq, env_config)
 
-    stats.save("test.csv")
     # Close environment after training is completed.
     env.close()
