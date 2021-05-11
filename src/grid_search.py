@@ -31,9 +31,11 @@ ENV_CONFIGS = {
 # train_freq, target_update_freq, anneal_length, batch_size, lr
 params = ["train_frequency", "target_update_frequency", "anneal_length", "batch_size", "lr"]
 grid = [
-    (1,30,10**4,32,1e-4),(2,30,10**4,32,1e-4),(3,30,10**4,32,1e-4),(4,30,10**4,32,1e-4),(5,30,10**4,32,1e-4), # train_freq
-    (1,10,10**4,32,1e-4), (1,20,10**4,32,1e-4), (1,30,10**4,32,1e-4), (1,30,10**4,32,1e-4), (1,40,10**4,32,1e-4), (1,50,10**4,32,1e-4), (1,60,10**4,32,1e-4), (1,70,10**4,32,1e-4), (1,80,10**4,32,1e-4), (1,90,10**4,32,1e-4), (1,100,10**4,32,1e-4),
-    (1,30,10**4*(1/2),32,1e-4), (1,30,10**4*2,32,1e-4) # anneal length
+    (1,100,10**4,32,1e-4),(2,100,10**4,32,1e-4),(3,100,10**4,32,1e-4),(4,100,10**4,32,1e-4),(5,100,10**4,32,1e-4), # train_freq
+    (1,50,10**4,32,1e-4), (1,100,10**4,32,1e-4),(1,150,10**4,32,1e-4), (1,200,10**4,32,1e-4), (1,250,10**4,32,1e-4), (1,300,10**4,32,1e-4), (1,350,10**4,32,1e-4), # target_update_freq
+    (1,30,10**4*(1/2),32,1e-4), (1,30,10**4*2,32,1e-4), # anneal length
+    (1,100,10**4,32,1e-2), (1,100,10**4,32,1e-3), (1,100,10**4,32,1e-5), (1,100,10**4,32,1e-6), # lr
+    (1,100,10**4,64,1e-4), (1,100,10**4,128,1e-4) #batxh size
 ]
 grid_it = 0
 
@@ -59,8 +61,12 @@ if __name__ == '__main__':
     env = gym.make(args.env)
     env_config = ENV_CONFIGS[args.env]
 
+
     # Initialize statistics
-    stats = Statistics({}, ["episode","iterations", "mean_return", "loss"])
+    stats_columns = []
+    stats_columns.extend(params)
+    stats_columns.extend(["episode","iterations", "mean_return", "loss"])
+    stats = Statistics(stats_columns)
 
 
     # Start training

@@ -5,9 +5,8 @@ from os import path, mkdir
 
 
 class Statistics:
-    def __init__(self, env_config, evaluation_columns):
+    def __init__(self, evaluation_columns):
         columns = ["episode_time"]
-        columns.extend(list(env_config.keys()))
         columns.extend(evaluation_columns)
         self.columns = dict([(key, i) for i, key in enumerate(columns)])
         self.data = []
@@ -26,6 +25,11 @@ class Statistics:
 
     def log(self, key, value):
         self.data[-1][self.columns[key]] = value
+
+    def log_config(self, config):
+        for key, val in config.items():
+            if key in self.columns.keys():
+                self.data[-1][self.columns[key]] = val
 
     def log_iteration(self, key, value):
         if value is not None:
