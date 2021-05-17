@@ -9,7 +9,7 @@ import random
 import config
 from utils import preprocess
 from evaluate import evaluate_policy
-from dqn import DQN, ReplayMemory, optimize
+from dqn import DQN, QN, ReplayMemory, optimize
 from statistics import Statistics
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -129,7 +129,7 @@ def train(env, eval_episodes, eval_freq, env_config, stats = None, save_stats = 
 
         # Evaluate the current agent.
         if episode % eval_freq == 0 or episode == env_config['n_episodes']-1:
-            mean_return = evaluate_policy(dqn, env, n_episodes=eval_episodes)
+            mean_return = evaluate_policy(dqn, env, env_config, n_episodes=eval_episodes)
 
             if stats:
                 stats.log("eval_mean_return", mean_return)
@@ -157,6 +157,7 @@ def train(env, eval_episodes, eval_freq, env_config, stats = None, save_stats = 
 
 
 if __name__ == '__main__':
+    print(f"Training on device: {device}")
     args = parser.parse_args()
 
     # Initialize environment and config.

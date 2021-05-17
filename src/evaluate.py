@@ -22,12 +22,16 @@ parser.set_defaults(save_video=False)
 # Hyperparameter configurations for different environments. See config.py.
 ENV_CONFIGS = {
     'CartPole-v0': config.CartPole,
-    'CartPole-v1': config.CartPole
+    'CartPole-v1': config.CartPole,
+    'Pong-v0': config.Pong
 }
 
-def evaluate_policy(dqn, env, n_episodes, render=False, verbose=False):
+def evaluate_policy(dqn, env, env_config, n_episodes, render=False, verbose=False):
     """Runs {n_episodes} episodes to evaluate current policy."""
     total_return = 0
+
+    # Initialize action mapping, if available
+    action_map = env_config.get('action_map')
 
     for i in range(n_episodes):
         obs = preprocess(env.reset(), env=env.spec.id)
@@ -39,10 +43,16 @@ def evaluate_policy(dqn, env, n_episodes, render=False, verbose=False):
             if render:
                 env.render()
 
-            action = dqn.act(obs, exploit=True)
+            action = dqn.act(obs, exploit=True).item()
+
+            # Remapping actions if needed
+            if action_map is not None:
+                env_action = action_map[action]
+            else:
+                env_action = action
 
             prev_obs = obs
-            obs, reward, done, info = env.step(action.item())
+            obs, reward, done, info = env.step(env_action)
 
             obs = preprocess(obs, env=env.spec.id, prev=prev_obs)
 
