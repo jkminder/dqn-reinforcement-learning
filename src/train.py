@@ -21,6 +21,7 @@ parser.add_argument('--evaluation_episodes', type=int, default=5, help='Number o
 parser.add_argument('--stats', type=str, default=None, help='Path to statistics folder', nargs='?')
 parser.add_argument('--models', type=str, default=None, help='Path to model folder', nargs='?')
 parser.add_argument('--episodes', type=int, default=None, help='Number of training episodes.', nargs='?')
+parser.add_argument('--pretrained', type=str, default=None, help='Path to a pretrained model, that us used as starting point.', nargs='?')
 
 # Hyperparameter configurations for different environments. See config.py.
 ENV_CONFIGS = {
@@ -43,7 +44,7 @@ def create_env(env_name):
         from gym.wrappers import AtariPreprocessing
         return AtariPreprocessing(env, screen_size=84, grayscale_obs=True, frame_skip=1, noop_max=30)
 
-def train(env, eval_episodes, eval_freq, env_config, stats = None, save_stats = None, save_model = None, verbose = 2):
+def train(env, eval_episodes, eval_freq, env_config, stats = None, load_pretrained = None, save_stats = None, save_model = None, verbose = 2):
     if verbose == 1:
         end = "\r"
     elif verbose >= 2:
@@ -52,7 +53,11 @@ def train(env, eval_episodes, eval_freq, env_config, stats = None, save_stats = 
     action_map = env_config.get('action_map')
 
     # Initialize deep Q-networks.
-    dqn = create_network(env.spec.id, env_config).to(device)
+    if load_pretrained is not None:
+        # Load a pretrained model
+        dqn = torch.load(load_pretrained, map_location=device).to(device)
+    else:
+        dqn = create_network(env.spec.id, env_config).to(device)
     dqn.train()
 
     # Create and initialize target Q-network.
@@ -176,7 +181,7 @@ if __name__ == '__main__':
 
     # Initialize statistics
     stats_columns = []
-    stats_columns.extend(["episode","iterations", "reward", "eval_mean_return"])
+    stats_columns.extend(["episode", "iterations", "reward", "eval_mean_return"])
     stats = Statistics(stats_columns)
     stats_path = ""
     if args.stats is None:
@@ -186,7 +191,7 @@ if __name__ == '__main__':
 
     # Start training
     total_rewards, steps = train(env, args.evaluation_episodes, args.evaluate_freq, env_config,
-                                 stats=stats, save_stats=stats_path, save_model=args.models, verbose=3)
+                                 stats=stats, load_pretrained=args.pretrained, save_stats=stats_path, save_model=args.models, verbose=3)
 
     if stats is not None:
         stats.save(stats_path)
