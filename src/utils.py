@@ -17,7 +17,7 @@ def preprocess(obs, env, prev=None):
         return torch.tensor(obs, device=device).float().unsqueeze(0)
     elif env in ['Pong-v0']:
         # Normalise image to 0-1
-        obs = torch.tensor(obs).float().unsqueeze(0)
+        obs = torch.tensor(obs, device=device).float().unsqueeze(0)
         obs /= 255
         # Create obs stack
         if prev is None:
