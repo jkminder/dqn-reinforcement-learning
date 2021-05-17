@@ -20,6 +20,7 @@ parser.add_argument('--evaluate_freq', type=int, default=25, help='How often to 
 parser.add_argument('--evaluation_episodes', type=int, default=5, help='Number of evaluation episodes.', nargs='?')
 parser.add_argument('--stats', type=str, default=None, help='Path to statistics folder', nargs='?')
 parser.add_argument('--models', type=str, default=None, help='Path to model folder', nargs='?')
+parser.add_argument('--episodes', type=int, default=None, help='Number of training episodes.', nargs='?')
 
 # Hyperparameter configurations for different environments. See config.py.
 ENV_CONFIGS = {
@@ -163,6 +164,10 @@ if __name__ == '__main__':
     # Initialize environment and config.
     env = create_env(args.env)
     env_config = ENV_CONFIGS[args.env]
+
+    # Update config if required
+    if args.episodes is not None:
+        env_config['n_episodes'] = args.episodes
 
     # Make things reproducible.
     torch.manual_seed(seed=0)
