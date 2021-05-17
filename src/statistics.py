@@ -24,7 +24,9 @@ class Statistics:
 
 
     def log(self, key, value):
-        self.data[-1][self.columns[key]] = value
+        i = self.columns.get(key)
+        if i is not None:
+            self.data[-1][i] = value
 
     def log_config(self, config):
         for key, val in config.items():
@@ -32,7 +34,8 @@ class Statistics:
                 self.data[-1][self.columns[key]] = val
 
     def log_iteration(self, key, value):
-        if value is not None:
+        i = self.columns.get(key)
+        if value is not None and i is not None:
             assert(isinstance(value, float))
             if key not in self.iteration_values.keys():
                 self.iteration_values[key] = []
@@ -54,12 +57,8 @@ class Statistics:
             # compute means of previous episodes
             self._compute_write_mean()
 
-    def save(self, filename):
-        # Test if statistics dir exists
-        if not path.isdir("statistics"):
-            mkdir('statistics')
-
-        pd.DataFrame(self.data, columns=self.columns.keys()).to_csv("statistics/" + filename)
+    def save(self, filepath):
+        pd.DataFrame(self.data, columns=self.columns.keys()).to_csv(filepath)
 
     def __str__(self):
         return str(pd.DataFrame(self.data, columns=self.columns.keys()))

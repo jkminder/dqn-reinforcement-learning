@@ -25,12 +25,12 @@ ENV_CONFIGS = {
     'CartPole-v1': config.CartPole
 }
 
-def evaluate_policy(dqn, env, env_config, n_episodes, render=False, verbose=False):
+def evaluate_policy(dqn, env, n_episodes, render=False, verbose=False):
     """Runs {n_episodes} episodes to evaluate current policy."""
     total_return = 0
 
     for i in range(n_episodes):
-        obs = preprocess(env.reset(), env=env.spec.id).unsqueeze(0)
+        obs = preprocess(env.reset(), env=env.spec.id)
 
         done = False
         episode_return = 0
@@ -41,8 +41,10 @@ def evaluate_policy(dqn, env, env_config, n_episodes, render=False, verbose=Fals
 
             action = dqn.act(obs, exploit=True)
 
+            prev_obs = obs
             obs, reward, done, info = env.step(action.item())
-            obs = preprocess(obs, env=env.spec.id).unsqueeze(0)
+
+            obs = preprocess(obs, env=env.spec.id, prev=prev_obs)
 
             episode_return += reward
 

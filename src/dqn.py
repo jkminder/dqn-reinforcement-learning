@@ -30,9 +30,9 @@ class ReplayMemory:
         return Transition(*zip(*sample))
 
 
-class DQN(nn.Module):
+class QN(nn.Module):
     def __init__(self, env_config):
-        super(DQN, self).__init__()
+        super(QN, self).__init__()
 
         # Save hyperparameters needed in the DQN class.
         self.batch_size = env_config["batch_size"]
@@ -43,14 +43,17 @@ class DQN(nn.Module):
         self.anneal_type = env_config["anneal_type"]
         self.n_actions = env_config["n_actions"]
 
-        self.fc1 = nn.Linear(4, 256)
-        self.fc2 = nn.Linear(256, self.n_actions)
+        self._init_architecture()
 
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
 
         self.steps_done = -1
 
+    def _init_architecture(self):
+        """Initializes the architecture."""
+        self.fc1 = nn.Linear(4, 256)
+        self.fc2 = nn.Linear(256, self.n_actions)
 
     def forward(self, x):
         """Runs the forward pass of the NN depending on architecture."""
@@ -90,6 +93,23 @@ class DQN(nn.Module):
             actions[exploration_indices] = torch.randint(high=self.n_actions, size=[sum(exploration_indices)], device=device)
             self.steps_done += observation.shape[0]
         return actions
+
+class DQN(QN):
+    def _init_architecture(self):
+        self.conv1 = nn.Conv2d(4, 32, kernel_size=8, stride=4, padding=0)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0)
+        self.fc1 = nn.Linear(3136, 512)
+        self.fc2 = nn.Linear(512, self.n_actions)
+
+    def forward(self, x):
+        x = self.relu(self.conv1(x))
+        x = self.relu(self.conv2(x))
+        x = self.relu(self.conv3(x))
+        x = self.relu(self.fc1(self.flatten(x)))
+        x = self.fc2(x)
+
+        return x
 
 def optimize(dqn, target_dqn, memory, optimizer, grad_clip = False):
     """This function samples a batch from the replay buffer and optimizes the Q-network."""
