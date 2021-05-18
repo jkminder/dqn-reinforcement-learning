@@ -11,7 +11,7 @@ from utils import preprocess
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--env', choices=['CartPole-v0', 'CartPole-v1'])
+parser.add_argument('--env', choices=['CartPole-v0', 'CartPole-v1', 'Pong-v0'])
 parser.add_argument('--path', type=str, help='Path to stored DQN model.')
 parser.add_argument('--n_eval_episodes', type=int, default=1, help='Number of evaluation episodes.', nargs='?')
 parser.add_argument('--render', dest='render', action='store_true', help='Render the environment.')
@@ -66,11 +66,20 @@ def evaluate_policy(dqn, env, env_config, n_episodes, render=False, verbose=Fals
 
     return total_return / n_episodes
 
+def create_env(env_name):
+    env = gym.make(env_name)
+    if env_name in ['CartPole-v0', 'CartPole-v1']:
+        return env
+    elif env_name in ['Pong-v0']:
+        # Import required wrapper
+        from gym.wrappers import AtariPreprocessing
+        return AtariPreprocessing(env, screen_size=84, grayscale_obs=True, frame_skip=1, noop_max=30)
+
 if __name__ == '__main__':
     args = parser.parse_args()
 
     # Initialize environment and config
-    env = gym.make(args.env)
+    env = create_env(args.env)
     env_config = ENV_CONFIGS[args.env]
 
     if args.save_video:
