@@ -34,10 +34,10 @@ CartPole = {
 }
 
 Pong = {
-    'memory_size': 10000,
+    'memory_size': 90000,
     'n_episodes': 1000,
     'batch_size': 32,
-    'target_update_frequency': 1000,
+    'target_update_frequency': 100,
     'train_frequency': 4,
     'gamma': 0.99,
     'lr': 1e-4,
