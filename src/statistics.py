@@ -5,13 +5,14 @@ from os import path, mkdir
 
 
 class Statistics:
-    def __init__(self, evaluation_columns):
+    def __init__(self, evaluation_columns, filepath):
         columns = ["episode_time"]
         columns.extend(evaluation_columns)
         self.columns = dict([(key, i) for i, key in enumerate(columns)])
         self.data = []
         self.episode_counter = 0
         self.episode_start = -1
+        self.filepath = filepath
 
         # Tmp storage for average values
         self.iteration_values = {}
@@ -21,7 +22,6 @@ class Statistics:
             mean = np.mean(self.iteration_values[key])
             self.data[-1][self.columns[key]] = mean
         self.iteration_values.clear()
-
 
     def log(self, key, value):
         i = self.columns.get(key)
@@ -57,8 +57,22 @@ class Statistics:
             # compute means of previous episodes
             self._compute_write_mean()
 
-    def save(self, filepath):
-        pd.DataFrame(self.data, columns=self.columns.keys()).to_csv(filepath)
+    def save(self, filepath=None):
+        """filepath can overwrite the default instance filepath"""
+        fp = self.filepath if filepath is not None else filepath
+        pd.DataFrame(self.data, columns=self.columns.keys()).to_csv(fp)
+
+    @staticmethod
+    def load(filepath):
+        stats = Statistics([], filepath)
+        df = pd.read_csv(filepath)
+        stats.data = df.iloc[:, 1:].values.tolist()
+        columns = {}
+        for i, key in enumerate(df.columns.tolist()[1:]):
+            columns[key] = i
+        stats.columns = columns
+        stats.episode_counter = len(stats.data)
+        return stats
 
     def __str__(self):
         return str(pd.DataFrame(self.data, columns=self.columns.keys()))
