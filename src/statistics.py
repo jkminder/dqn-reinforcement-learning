@@ -59,7 +59,8 @@ class Statistics:
 
     def save(self, filepath=None):
         """filepath can overwrite the default instance filepath"""
-        fp = self.filepath if filepath is not None else filepath
+        fp = self.filepath if filepath is None else filepath
+        print(fp)
         pd.DataFrame(self.data, columns=self.columns.keys()).to_csv(fp)
 
     @staticmethod
