@@ -11,7 +11,7 @@ from utils import preprocess
 from evaluate import evaluate_policy
 from dqn import DQN, ReplayMemory, optimize
 from statistics import Statistics
-from train import train
+from train import train, TrainingState
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 parser = argparse.ArgumentParser()
@@ -62,12 +62,16 @@ if __name__ == '__main__':
     env_config = ENV_CONFIGS[args.env]
 
 
-    # Initialize statistics
+    # Initialize statistics and training state
+    training_state = TrainingState(path="./", model_path="./models", statistics="./statistics",
+                                   persist=False)
+
     stats_columns = []
     stats_columns.extend(params)
     stats_columns.extend(["episode","iterations", "mean_return", "loss"])
-    stats = Statistics(stats_columns)
+    stats = Statistics(stats_columns, "./grid_search.csv")
 
+    training_state.stats = stats
 
     # Start training
     while (grid_it < len(grid)):
@@ -75,7 +79,7 @@ if __name__ == '__main__':
 
         for i in range(args.training_runs):
             print(f"## Training run {i+1}/10             ")
-            train(env, args.evaluation_episodes, args.evaluate_freq, env_config, stats, verbose=1)
+            train(env, args.evaluation_episodes, args.evaluate_freq, env_config, training_state, verbose=1)
 
         # save it each iteration
         stats.save("grid_search.csv")
